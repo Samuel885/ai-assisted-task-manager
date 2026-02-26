@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 12, 2026 at 07:40 AM
+-- Generation Time: Feb 26, 2026 at 10:40 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -42,6 +42,15 @@ CREATE TABLE `tasks` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `tasks`
+--
+
+INSERT INTO `tasks` (`task_id`, `user_id`, `title`, `description`, `due_date`, `priority`, `difficulty`, `estimated_hours`, `status`, `workload_score`, `created_at`, `updated_at`) VALUES
+(1, 1, 'asasas', 'dfawdawdawd', '2026-12-22', 'Medium', 'Medium', 1, 'Completed', 2, '2026-02-26 08:28:36', '2026-02-26 09:18:53'),
+(2, 1, 'summative exam', 'ITS112L', '2026-12-22', 'Medium', 'Medium', 1, 'Pending', 2, '2026-02-26 08:42:12', '2026-02-26 08:42:12'),
+(3, 2, 'testing', 'testing', '2004-08-22', 'Low', 'Hard', 1, 'Pending', 1, '2026-02-26 09:22:04', '2026-02-26 09:22:04');
+
 -- --------------------------------------------------------
 
 --
@@ -61,7 +70,8 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`user_id`, `full_name`, `email`, `password_hash`, `created_at`) VALUES
-(1, 'Jose Eduardo Samuel L. Divina', 'josedivina885@gmail.com', '$2y$10$F3qxMglk8AQjG3YMkc8lMuIS7QeGyCbBiiE7R1sFtY6CNoUd5CRTK', '2026-02-12 06:16:11');
+(1, 'Jose Eduardo Samuel L. Divina', 'josedivina885@gmail.com', '$2y$10$F3qxMglk8AQjG3YMkc8lMuIS7QeGyCbBiiE7R1sFtY6CNoUd5CRTK', '2026-02-12 06:16:11'),
+(2, 'Samuel Divina', 'joseeduardosamueld@gmail.com', '$2y$10$Yr6dMtmlIIG9CUqnPGZqdeMCuju5pgB9ORfwvQoIjvpL0W7e9Ynxy', '2026-02-26 09:20:08');
 
 --
 -- Indexes for dumped tables
@@ -89,13 +99,13 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `tasks`
 --
 ALTER TABLE `tasks`
-  MODIFY `task_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `task_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- Constraints for dumped tables
