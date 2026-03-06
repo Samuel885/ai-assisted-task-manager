@@ -9,28 +9,99 @@ if (!isset($_SESSION["user_id"])) {
 $user_id = $_SESSION["user_id"];
 
 function priorityWeight($p) {
-  $p = strtolower($p);
-  if ($p === "high") return 3;
-  if ($p === "medium") return 2;
+  $p = strtolower(trim($p));
+  if ($p === "high") return 5;
+  if ($p === "medium") return 3;
   return 1;
 }
 
 function difficultyWeight($d) {
-  $d = strtolower($d);
-  if ($d === "hard") return 3;
+  $d = strtolower(trim($d));
+  if ($d === "hard") return 4;
   if ($d === "medium") return 2;
   return 1;
+}
+
+function statusWeight($status) {
+  $status = strtolower(trim($status));
+  if ($status === "in progress") return 2;
+  return 0;
 }
 
 function daysUntil($dateStr) {
   $today = new DateTime("today");
   $due = DateTime::createFromFormat("Y-m-d", $dateStr);
   if (!$due) return 9999;
-  $diff = (int)$today->diff($due)->format("%r%a"); // negative if overdue
-  return $diff;
+  return (int)$today->diff($due)->format("%r%a");
 }
 
-// Fetch tasks not completed
+function urgencyScore($days) {
+  if ($days < 0) {
+    return min(25, 20 + abs($days));
+  } elseif ($days === 0) {
+    return 18;
+  } elseif ($days === 1) {
+    return 15;
+  } elseif ($days <= 3) {
+    return 12;
+  } elseif ($days <= 7) {
+    return 8;
+  } elseif ($days <= 14) {
+    return 4;
+  } else {
+    return 1;
+  }
+}
+
+function recommendationCategory($days) {
+  if ($days < 0 || $days <= 1) return "Do Now";
+  if ($days <= 7) return "Do Soon";
+  return "Plan Ahead";
+}
+
+function dueLabel($days) {
+  if ($days < 0) return "Overdue by " . abs($days) . " day(s)";
+  if ($days === 0) return "Due today";
+  if ($days === 1) return "Due tomorrow";
+  return "Due in " . $days . " day(s)";
+}
+
+function recommendationReason($task) {
+  $reasons = [];
+
+  if ($task["days_until"] < 0) {
+    $reasons[] = "it is overdue";
+  } elseif ($task["days_until"] === 0) {
+    $reasons[] = "it is due today";
+  } elseif ($task["days_until"] === 1) {
+    $reasons[] = "it is due tomorrow";
+  } elseif ($task["days_until"] <= 3) {
+    $reasons[] = "it is due very soon";
+  }
+
+  if (strtolower($task["priority"]) === "high") {
+    $reasons[] = "it has high priority";
+  }
+
+  if (strtolower($task["difficulty"]) === "hard") {
+    $reasons[] = "it is difficult";
+  }
+
+  if ((int)$task["estimated_hours"] >= 4) {
+    $reasons[] = "it needs more time";
+  }
+
+  if (strtolower($task["status"]) === "in progress") {
+    $reasons[] = "you already started it";
+  }
+
+  if (empty($reasons)) {
+    return "it has a balanced mix of urgency and workload";
+  }
+
+  return implode(", ", $reasons);
+}
+
 $stmt = $conn->prepare("
   SELECT task_id, title, due_date, priority, difficulty, estimated_hours, status
   FROM tasks
@@ -45,98 +116,37 @@ $tasks = [];
 while ($row = $res->fetch_assoc()) {
   $days = daysUntil($row["due_date"]);
 
-  // urgency factor: overdue or due soon = higher
-  // due today => 10, due in 1 day => 9, ... due in 7 days => 3, > 7 => 1
-  if ($days <= 0) $urgency = 12; 
-  elseif ($days == 1) $urgency = 10;
-  elseif ($days <= 3) $urgency = 8;
-  elseif ($days <= 7) $urgency = 5;
-  else $urgency = 2;
-
-  $pW = priorityWeight($row["priority"]);
-  $dW = difficultyWeight($row["difficulty"]);
-
-  // score formula (simple but effective)
-  $score = ($pW * 4) + ($dW * 2) + $urgency;
-
-  // small bonus if estimated hours is bigger (optional)
+  $priority = priorityWeight($row["priority"]);
+  $difficulty = difficultyWeight($row["difficulty"]);
+  $statusBonus = statusWeight($row["status"]);
+  $urgency = urgencyScore($days);
   $hours = (int)($row["estimated_hours"] ?? 1);
-  $score += min(3, max(0, $hours - 1));
+
+  $score =
+      ($urgency * 3) +
+      ($priority * 2) +
+      ($difficulty * 1.5) +
+      min(6, $hours) +
+      $statusBonus;
 
   $row["days_until"] = $days;
-  $row["score"] = $score;
+  $row["score"] = round($score, 1);
+  $row["reason"] = recommendationReason($row);
+  $row["category"] = recommendationCategory($days);
+  $row["due_label"] = dueLabel($days);
+
   $tasks[] = $row;
 }
 
-// Sort highest score first
 usort($tasks, function($a, $b) {
+  if ($b["score"] == $a["score"]) {
+    if ($a["days_until"] == $b["days_until"]) {
+      return $b["estimated_hours"] <=> $a["estimated_hours"];
+    }
+    return $a["days_until"] <=> $b["days_until"];
+  }
   return $b["score"] <=> $a["score"];
 });
 
 $stmt->close();
 ?>
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Recommendations - TaskBalance</title>
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
-
-<div class="nav">
-  <div class="brand">TaskBalance</div>
-  <a class="btn btn-outline" href="dashboard.php">Dashboard</a>
-</div>
-
-<div class="container">
-  <div class="card">
-    <h1 style="margin:0;">Recommendations</h1>
-    <p class="muted" style="margin:6px 0 0;">
-      Suggested order based on priority, difficulty, and due date.
-    </p>
-
-    <?php if (count($tasks) === 0): ?>
-      <div style="margin-top:14px;" class="muted">
-        No active tasks found. Add tasks to get recommendations.
-      </div>
-    <?php else: ?>
-      <?php $top = $tasks[0]; ?>
-      <div class="card" style="box-shadow:none; margin-top:14px;">
-        <p class="muted" style="margin:0 0 8px;">Do this first</p>
-        <h2 style="margin:0;"><?php echo htmlspecialchars($top["title"]); ?></h2>
-        <p class="muted" style="margin:8px 0 0;">
-          Due: <strong><?php echo htmlspecialchars($top["due_date"]); ?></strong> |
-          Priority: <strong><?php echo htmlspecialchars($top["priority"]); ?></strong> |
-          Difficulty: <strong><?php echo htmlspecialchars($top["difficulty"]); ?></strong>
-        </p>
-      </div>
-
-      <div class="table-wrap" style="margin-top:14px;">
-        <table>
-          <tr>
-            <th style="width:40%;">Task</th>
-            <th style="text-align:center;">Due</th>
-            <th style="text-align:center;">Priority</th>
-            <th style="text-align:center;">Difficulty</th>
-            <th style="text-align:center;">Score</th>
-          </tr>
-
-          <?php foreach ($tasks as $t): ?>
-            <tr>
-              <td><strong><?php echo htmlspecialchars($t["title"]); ?></strong></td>
-              <td style="text-align:center;"><?php echo htmlspecialchars($t["due_date"]); ?></td>
-              <td style="text-align:center;"><?php echo htmlspecialchars($t["priority"]); ?></td>
-              <td style="text-align:center;"><?php echo htmlspecialchars($t["difficulty"]); ?></td>
-              <td style="text-align:center;"><?php echo (int)$t["score"]; ?></td>
-            </tr>
-          <?php endforeach; ?>
-        </table>
-      </div>
-    <?php endif; ?>
-
-  </div>
-</div>
-
-</body>
-</html>
