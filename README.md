@@ -1,10 +1,14 @@
 AI-Assisted Task Management Platform
+
 Overview
 
-The AI-Assisted Task Management Platform is a web-based system designed to help students manage academic tasks efficiently. The system provides secure authentication, full CRUD functionality, task organization features, and a rule-based workload recommendation module that suggests which task to prioritize based on urgency and difficulty.
+The AI-Assisted Task Management Platform is a web-based system designed to help students manage academic tasks efficiently. The system provides secure authentication, full CRUD functionality, task organization tools, and a rule-based workload recommendation module that suggests which task should be prioritized based on urgency, priority level, difficulty, and estimated workload.
+
+The goal of the system is to help students better organize their assignments and focus on the most important tasks first.
 
 Features
-* Authentication
+
+Authentication
 * User registration
 * Secure login
 * Logout with session termination
@@ -16,26 +20,34 @@ Task Management (CRUD)
 * Edit existing tasks
 * Delete tasks
 * Tasks linked to the logged-in user only
+
 Workload Recommendation System
-* Rule-based prioritization logic
-  
+* Rule-based task prioritization logic
+* Automatically ranks tasks based on a calculated score
+
 Workload score calculated using:
-* Priority
-* Difficulty
-* Due date proximity
-* Estimated hours
+* Priority level
+* Task difficulty
+* Due date proximity (urgency)
+* Estimated completion hours
+* Task status (e.g., In Progress)
+
+Additional Features
 * Displays recommended task to complete first
+* Provides explanation for recommendation
 * Completed tasks excluded from recommendations
 
 Task Organization
-* Sorting by:
-   * Due date
-   * Priority
-   * Status
 
-* Filtering by:
-   * Priority
-   * Status
+Sorting by:
+* Due date
+* Priority
+* Status
+
+Filtering by:
+* Priority
+* Status
+
 * Reset filter functionality
 
 System Testing
@@ -53,7 +65,8 @@ Technologies Used
 * CSS
 
 Database Schema
-* users table
+
+users table
 * user_id
 * full_name
 * email
@@ -83,11 +96,12 @@ How to Run the Project
 
    C:\xampp\htdocs\taskbalance
 
-5.Open your browser and access:
+5. Open your browser and access:
 
    http://localhost/taskbalance/login.php
 
 Project Structure
+
 * config.php – database connection and session handling
 * register.php – user registration
 * login.php – authentication
